@@ -1,0 +1,172 @@
+﻿@page "/sales"
+@using Business.Managers.Abstract
+@using Business.Methods.LoginMethods.Interfaces
+@using Entities.Models
+@inject ISaleService _saleService;
+@inject IProductService _productService;
+@inject ICustomerService _customerService;
+@inject IEmployeeService _employeeService;
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IToastService _ts;
+@inject IStorageMethods _storageMethods
+@inject NavigationManager navigation;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,sales")]
+
+@if (Sales == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+	<div style="margin-top:20px;padding:0 20px">
+	<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Sale" Click="()=>InsertRow()" />
+	</div>
+	<div style="padding:0 20px;margin-top:40px">
+	<RadzenDataGrid @ref="SalesGrid" Data="Sales" TItem="SaleModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single" Style="font-family:'Cascadia Code'">
+		<Columns>
+			<RadzenDataGridColumn TItem="SaleModel" Property="Id" Title="Sale Id" />
+			<RadzenDataGridColumn TItem="SaleModel" Property="CustomerName" Title="Customer">
+				<EditTemplate Context="context">
+					<RadzenDropDown Name="productDropdown" Style="width: 100%; max-width: 300px;" TValue="int" @bind-Value="context.CustomerId" AllowFiltering="true" Placeholder="Choose The Product"
+									Data="customers" TextProperty="Name" ValueProperty="Id" />
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="SaleModel" Property="ProductName" Title="Product">
+				<EditTemplate Context="context">
+					<RadzenDropDown Name="productDropdown" Style="width: 100%; max-width: 300px;" TValue="int" @bind-Value="context.ProductId" AllowFiltering="true" Placeholder="Choose The Product"
+									Data="products" TextProperty="Name" ValueProperty="Id" />
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="SaleModel" Property="CategoryName" Title="Category">
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="SaleModel" Property="SalesQuantity" Title="Quantity">
+				<EditTemplate Context="context">
+					<RadzenNumeric Name="employee" @bind-Value="context.SalesQuantity" Style="width:100%" Placeholder="Please enter the Employee"></RadzenNumeric>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="SaleModel" Property="TotalAmount" Title="Total">
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="SaleModel" Property="SaleTime" Title="Date">
+			</RadzenDataGridColumn>
+
+			
+			<RadzenDataGridColumn TItem="SaleModel">
+				<Template Context="context">
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="()=>EditRow(context)"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="async()=>  await ConfirmToDelete(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+		</Columns>
+	</RadzenDataGrid>
+	</div>
+}
+
+@code {
+	private List<SaleModel>? Sales;
+	RadzenDataGrid<SaleModel>? SalesGrid;
+	List<SaleModel> SalesToInsert = new List<SaleModel>();
+	List<ProductModel> products = new List<ProductModel>();
+	List<EmployeeModel> employees = new List<EmployeeModel>();
+	List<CustomerModel> customers = new List<CustomerModel>();
+	private SaleModel newSale = new SaleModel(); 
+	public int Id { get; set; } = -1;
+
+	protected override async Task OnInitializedAsync()
+
+	{
+		var id = await GetIdAsync();
+		await _authMethods.CheckAuthBeforeRequests();
+		var employeeSales = await _saleService.GetSalesAsync();
+		Sales = employeeSales.Where(c => c.EmployyeId == id).ToList();
+		products = await _productService.GetProductsAsync();
+		customers = await _customerService.GetCustomersAsync();
+		employees = await _employeeService.GetEmployeesAsync();
+	}
+
+	async Task RefreshList()
+	{
+		var id = await GetIdAsync();
+		var employeeSales = await _saleService.GetSalesAsync();
+		Sales = employeeSales.Where(c => c.EmployyeId == id).ToList();
+	}
+
+	async Task InsertRow()
+	{
+		newSale = new SaleModel(); 
+		SalesToInsert.Add(newSale);
+		await SalesGrid.InsertRow(newSale); 
+	}
+
+	async Task OnCreateRow(SaleModel Sale)
+	{
+		Sale.EmployyeId =await GetIdAsync();
+		await _saleService.AddSaleAsync(Sale);
+		await Task.Delay(TimeSpan.FromSeconds(0.1));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void CancelEdit(SaleModel SaleModel)
+	{
+		SalesGrid.CancelEditRow(SaleModel);
+
+	}
+
+	void SaveRow(SaleModel SaleModel)
+	{
+		SalesGrid?.UpdateRow(SaleModel);
+
+	}
+	async Task OnUpdateRow(SaleModel SaleModel)
+	{
+
+		await _saleService.UpdateSaleAsync(SaleModel);
+		await Task.Delay(TimeSpan.FromSeconds(0.2));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	async void DeleteRow(SaleModel model)
+	{
+		await _saleService.DeleteSaleAsync(model.Id);
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void EditRow(SaleModel model) { SalesGrid.EditRow(model); }
+
+
+	async Task ConfirmToDelete(SaleModel model)
+	{
+		var confirm = (bool)await DialogService.Confirm("Are You Sure?", "Delete Sale", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+		if (confirm) { DeleteRow(model); NotificationService.Notify(NotificationSeverity.Success, "Sale was deleted", "Success"); }
+		else { NotificationService.Notify(NotificationSeverity.Info, "Delete Cancelled", "The Sale delete operation was cancelled."); }
+	}
+
+
+
+	private async Task<int> GetIdAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+
+		var claims = user.Claims.ToList();
+
+
+		Id = _storageMethods.GetUserId(claims);
+
+		return Id;
+	}
+}

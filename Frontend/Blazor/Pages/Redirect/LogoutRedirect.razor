@@ -1,0 +1,18 @@
+﻿@page "/redirect-to-logout"
+@inject ILocalStorageService _storage;
+@inject NavigationManager navigation;
+
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Logout();
+    }
+
+
+    public async Task Logout()
+    {
+        await _storage.RemoveItemAsync("JwtToken");
+        navigation.NavigateTo("/login");
+    }
+}

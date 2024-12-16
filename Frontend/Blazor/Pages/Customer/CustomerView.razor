@@ -1,0 +1,55 @@
+﻿@page "/customers"
+@using Business.Managers.Abstract
+@using Entities.Models
+@inject ICustomerService _customerService;
+@inject NotificationService NotificationService
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,sales,stock")]
+@if (customers == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+	<div style="margin-top:20px;padding:0 20px">
+	<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Customer" Click="()=>InsertRow()" />
+	</div>
+	<div style="padding:0 20px;margin-top:40px">
+	<RadzenDataGrid @ref="customersGrid" Data="customers"  TItem="CustomerModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					Style="font-family:'Cascadia Code'" AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single">
+		<Columns>
+			<RadzenDataGridColumn TItem="CustomerModel" Property="Id" Title="Id" />
+			<RadzenDataGridColumn TItem="CustomerModel" Property="Name" Title="Name">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.Name" Style="width:100%" Placeholder="Please enter the Customer"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Customer Name"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="CustomerModel" Property="Address" Title="Adress">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.Address" Style="width:100%" Placeholder="Please enter Adress"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Adress"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="CustomerModel" Property="PhoneNumber" Title="Phone">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.PhoneNumber" Style="width:100%" Placeholder="Please enter Phone"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Phone"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="CustomerModel">
+				<Template Context="context">
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="()=>EditRow(context)"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="()=>DeleteRow(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+		</Columns>
+	</RadzenDataGrid>
+	</div>
+}

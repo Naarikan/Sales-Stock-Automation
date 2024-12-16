@@ -1,0 +1,123 @@
+﻿@using Business.Provider
+@using Microsoft.AspNetCore.Components.Authorization;
+@inject IAuthMethods _auth;
+@inject ILocalStorageService _storage;
+@inject NavigationManager navigation;
+@inject AuthenticationStateProvider AuthenticationStateProvider;
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a style="font-family:'Cascadia Code';font-size:large;color:yellowgreen" class="navbar-brand" href="https://www.naarikan.com">Linked Soft</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                <RadzenPanelMenuItem Text="Account" IconColor="#FFD700" Icon="home" Path="/">
+                </RadzenPanelMenuItem>
+            </RadzenPanelMenu>
+        </div>
+        <AuthorizeView Roles="admin,stock,sales">
+            <div class="nav-item px-3">
+                <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Category" Icon="category" IconColor="#FFD700" Path="category">
+                    </RadzenPanelMenuItem>
+                </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="admin,stock,sales">
+            <div class="nav-item px-3">
+                <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Product" Icon="inventory" IconColor="#FFD700" Path="product">
+                    </RadzenPanelMenuItem>
+                </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+       
+        <AuthorizeView Roles="admin">
+            <div class="nav-item px-3">
+                <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Employees" Icon="group" IconColor="#FFD700" Path="employeeconfirm">
+                    </RadzenPanelMenuItem>
+                </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+        <AuthorizeView Roles="admin,sales">
+        <div class="nav-item px-3">
+                <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Customers" Icon="person_pin_circle" IconColor="#FFD700" Path="customers">
+                    </RadzenPanelMenuItem>
+                </RadzenPanelMenu>
+        </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="admin,stock">
+             <div class="nav-item px-3">
+            <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Stocks" Icon="inventory_2" IconColor="#FFD700" Path="stocks">
+                </RadzenPanelMenuItem>
+            </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="admin,sales">
+            <div class="nav-item px-3">
+            <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="My Sales" Icon="payments" IconColor="#FFD700" Path="sales">
+                </RadzenPanelMenuItem>
+            </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="admin">
+            <div class="nav-item px-3">
+                <RadzenPanelMenu Style="width:300px;background-color:slategrey" Multiple="@multiple">
+                    <RadzenPanelMenuItem Text="Satatistics" Icon="monitoring" IconColor="#FFD700" Path="statistics">
+                    </RadzenPanelMenuItem>
+                </RadzenPanelMenu>
+            </div>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await _auth.CheckAuthBeforeRequests();
+    }
+
+    public async Task Logout()
+    {
+        await _storage.RemoveItemAsync("JwtToken");
+        ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout();
+        navigation.NavigateTo("/login");
+    }
+
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+
+    bool multiple = true;
+   
+    void OnParentClicked(MenuItemEventArgs args)
+    {
+      
+    }
+
+    void OnChildClicked(MenuItemEventArgs args)
+    {
+       
+    }
+}

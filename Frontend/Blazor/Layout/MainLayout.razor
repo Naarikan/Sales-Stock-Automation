@@ -1,0 +1,62 @@
+﻿@using Blazored.Toast.Configuration
+@inherits LayoutComponentBase
+@inject IToastService toastService;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using System.Security.Claims;
+@inject IAuthMethods _authMethods;
+@inject NavigationManager navigation;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<div class="page">
+	<div class="sidebar" >
+		<NavMenu />
+	</div>
+
+	<main>
+		<div class="top-row px-4" style="background-color:lightgrey">
+		    <AuthorizeView>
+				<Authorized>
+					<RadzenProfileMenu Style="background-color:lightgrey;box-shadow:0 0 0.2px 0;">
+							<Template>
+								<RadzenGravatar Email="@UserName">
+								</RadzenGravatar>
+							</Template>
+							<ChildContent>
+								<RadzenProfileMenuItem Text="@UserName" Path="category"  Icon="account_circle"></RadzenProfileMenuItem>
+								<RadzenProfileMenuItem Text="Logout" Path="redirect-to-logout" IconColor="Red" Icon="logout"></RadzenProfileMenuItem>
+							</ChildContent>
+						</RadzenProfileMenu>
+				</Authorized>
+				<NotAuthorized>
+					<a href="token">Login</a>
+				</NotAuthorized>
+
+			</AuthorizeView>
+			
+		</div>
+			@Body
+			<RadzenDialog />
+			<RadzenNotification />
+			<RadzenContextMenu />
+			<RadzenTooltip/>
+		
+	</main>
+</div>
+@code{
+	private string UserName { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		await _authMethods.CheckAuthBeforeRequests();
+		UserName = new(value:await GetClaim());
+	}
+
+
+	private async Task<string> GetClaim()
+	{
+		var claim = await _authMethods.GetClaim(ClaimTypes.Name);
+		return claim!;
+	}
+
+}

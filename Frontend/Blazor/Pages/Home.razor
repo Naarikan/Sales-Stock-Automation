@@ -1,0 +1,51 @@
+﻿@page "/"
+@inject IAuthMethods _auth;
+@inject NavigationManager navigationManager;
+@inject IEmployeeService _employeeService;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IStorageMethods _storageMethods
+@using Business.Managers.Abstract
+@using Entities.Models
+@inject ICategoryService CategoryService;
+
+<PageTitle>Home</PageTitle>
+
+<div class="rz-p-0 rz-p-md-12">
+	<RadzenCard Variant="Variant.Filled" class="rz-my-12 rz-mx-auto" Style="max-width: 420px">
+		<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Start" Gap="1rem" class="rz-p-4">
+			
+			<RadzenStack Gap="0">
+				<RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-2 rz-my-0">Ad</RadzenText>
+				<RadzenText TextStyle="TextStyle.Body1"><b>@Employee?.FirstName</b></RadzenText>
+				<RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-4 rz-mb-0">Soyad</RadzenText>
+				<RadzenText TextStyle="TextStyle.Body1"><b>@Employee?.LastName</b></RadzenText>
+				<RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-4 rz-mb-0">Katılma Tarihi</RadzenText>
+				<RadzenText TextStyle="TextStyle.Body1"><b>@Employee?.CreatedDate</b></RadzenText>
+				<RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-4 rz-mb-0">Telefon Numarası</RadzenText>
+				<RadzenText TextStyle="TextStyle.Body1"><b>@Employee.PhoneNumber</b></RadzenText>
+			</RadzenStack>
+		</RadzenStack>
+	</RadzenCard>
+</div>
+
+@code {
+	public int Id { get; set; } = -1;
+	public EmployeeModel Employee { set; get; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		await _auth.CheckAuthBeforeRequests();
+		await GetIdAsync();
+		Employee = await _employeeService.GetEmployeeByIdAsync(Id);
+	}
+
+	private async Task<int> GetIdAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+		var claims = user.Claims.ToList();
+		Id = _storageMethods.GetUserId(claims);
+		return Id;
+		
+	}
+}

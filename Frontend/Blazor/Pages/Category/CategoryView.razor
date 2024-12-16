@@ -1,0 +1,54 @@
+﻿@page "/category"
+
+@using Business.Managers.Abstract
+@using Entities.Models
+@using Microsoft.AspNetCore.Authorization
+@inject ICategoryService _categoryService
+@inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager navigation;
+@inject IAuthMethods _authMethods;
+
+@attribute [Authorize(Roles = "admin,sales,stock")]
+
+	@if (categories == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+
+	<div style="margin-top:20px;padding:0 20px">
+		<RadzenButton ButtonStyle="ButtonStyle.Success" Style="font-family:'Cascadia Code'" Icon="add_circle" Text="Add New Category" Click="()=>InsertRow()" /><br /><br />
+	</div>
+	<div style="padding:0 20px;margin-top:20px">
+	<RadzenDataGrid @ref="categoriesGrid" Data="categories" TItem="CategoryModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single"
+					Style=" font-family:'Cascadia Code'">
+		<Columns>
+
+			<RadzenDataGridColumn TItem="CategoryModel" Property="Id" Title="Id" />
+			<RadzenDataGridColumn TItem="CategoryModel" Property="Name" Title="Name">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.Name" Style="width:100%" Placeholder="Please enter the category"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Category Name"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="CategoryModel">
+				<Template Context="context">
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="()=>EditRow(context)"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="()=>DeleteRow(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+		</Columns>
+	</RadzenDataGrid>
+	</div>
+}
+
+

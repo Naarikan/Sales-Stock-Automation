@@ -1,0 +1,147 @@
+﻿@using Business.Managers.Abstract
+@using Entities.Models
+@using Microsoft.AspNetCore.Authorization
+@inject IStockService _StockService;
+@inject IProductService _productService;
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IToastService _ts;
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,stock")]
+
+
+
+@if (Stocks == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+
+
+	<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Stock" Click="()=>InsertRow()" />
+	<br />
+	<br />
+	<RadzenDataGrid @ref="StocksGrid" Data="Stocks" TItem="StockModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single">
+		<Columns>
+			<RadzenDataGridColumn TItem="StockModel" Property="Id" Title="Stock Id" />
+			<RadzenDataGridColumn TItem="StockModel" Property="Quantity" Title="Stock">
+				<EditTemplate Context="context">
+					<RadzenNumeric Name="quantity" @bind-Value="context.Quantity" Style="width:100%" Placeholder="Please enter the Stock"></RadzenNumeric>
+					<br />
+					<RadzenNumericRangeValidator Popup="true" Min="1" Component="quantity" Text="Please Enter The Stock "></RadzenNumericRangeValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="StockModel" Property="ProductCategory" Title="Category">
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="StockModel" Property="CreatedDate" Title="Stock's Created Date">
+			</RadzenDataGridColumn>
+
+			<RadzenDataGridColumn TItem="StockModel" Property="Product" Title="Product">
+				<EditTemplate Context="context">
+					<RadzenDropDown Name="productDropdown" Style="width: 100%; max-width: 300px;" TValue="int" @bind-Value="context.ProductId" AllowFiltering="true" Placeholder="Choose The Product"
+									Data="products" TextProperty="Name" ValueProperty="Id" />
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+			<RadzenDataGridColumn TItem="StockModel">
+				<Template Context="context">
+					<RadzenButton Icon="add" ButtonStyle="ButtonStyle.Primary" Click="@(args => EditRow1(context, "AddStock"))"></RadzenButton>
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Secondary" Click="@(args => EditRow(context, "UpdateStock"))"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="async()=>  await ConfirmToDelete(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+		</Columns>
+	</RadzenDataGrid>
+
+}
+
+@code {
+	private List<StockModel>? Stocks;
+	RadzenDataGrid<StockModel>? StocksGrid;
+	List<StockModel> StocksToInsert = new List<StockModel>();
+	List<ProductModel> products = new List<ProductModel>();
+	private StockModel newStock = new StockModel(); // Added
+
+	public string UpdateName { get; set; }
+
+	protected override async Task OnInitializedAsync()
+
+	{
+		await _authMethods.CheckAuthBeforeRequests();
+		Stocks = await _StockService.GetStocksAsync();
+		products = await _productService.GetProductsAsync();
+	}
+
+	async Task InsertRow()
+	{
+		newStock = new StockModel(); // Reset newStock
+		StocksToInsert.Add(newStock);
+		await StocksGrid.InsertRow(newStock); // Using newStock
+	}
+
+	async Task OnCreateRow(StockModel Stock)
+	{
+		await _StockService.AddStockAsync(Stock);
+		await Task.Delay(TimeSpan.FromSeconds(0.1));
+		Stocks = await _StockService.GetStocksAsync();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void CancelEdit(StockModel StockModel)
+	{
+		StocksGrid.CancelEditRow(StockModel);
+
+	}
+
+	void SaveRow(StockModel StockModel)
+	{
+		StocksGrid?.UpdateRow(StockModel);
+
+	}
+	async Task OnUpdateRow(StockModel StockModel)
+	{
+
+		await _StockService.UpdateStockAsync(StockModel,UpdateName);
+		await Task.Delay(TimeSpan.FromSeconds(0.2));
+		Stocks = await _StockService.GetStocksAsync();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	async void DeleteRow(StockModel model)
+	{
+		await _StockService.DeleteStockAsync(model.Id);
+		Stocks = await _StockService.GetStocksAsync();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void EditRow(StockModel model, string name)
+	{
+		StocksGrid.EditRow(model);
+		UpdateName = name;
+
+
+	}
+	void EditRow1(StockModel model, string name)
+	{
+		StocksGrid.EditRow(model);
+		UpdateName = name;
+
+	}
+
+	async Task ConfirmToDelete(StockModel model)
+	{
+		var confirm = (bool)await DialogService.Confirm("Are You Sure?", "Delete Stock", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+		if (confirm) { DeleteRow(model); NotificationService.Notify(NotificationSeverity.Success, "Stock was deleted", "Success"); }
+		else { NotificationService.Notify(NotificationSeverity.Info, "Delete Cancelled", "The stock delete operation was cancelled."); }
+	}
+
+}

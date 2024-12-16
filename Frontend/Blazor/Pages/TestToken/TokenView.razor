@@ -1,0 +1,33 @@
+﻿@page "/token"
+@using Blazored.LocalStorage
+@using Business.Managers.Abstract
+@using Business.Methods.LoginMethods.Interfaces
+@using Entities.Models
+@inject ILoginService _loginService
+@inject IStorageMethods _storageMethods
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Token Page</h3>
+
+<p>User ID: @Id</p>
+
+@code {
+    public int Id { get; set; } = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetIdAsync();
+    }
+
+    private async Task GetIdAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+      
+        var claims = user.Claims.ToList();
+
+      
+        Id = _storageMethods.GetUserId(claims);
+    }
+}

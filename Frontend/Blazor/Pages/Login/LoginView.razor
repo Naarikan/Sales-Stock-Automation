@@ -1,0 +1,103 @@
+﻿@layout LoginLayout;
+@page "/login"
+@using Blazored.LocalStorage
+@using Business.Managers.Abstract
+@using Business.Methods.LoginMethods.Interfaces
+@using Business.Provider
+@using Entities.Models
+@inject ILoginService _loginService;
+@using Business.Methods.LoginMethods;
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IStorageMethods _storageMethods;
+@inject AuthenticationStateProvider _autprovider;
+@inject IAuthMethods _auth;
+@inject NavigationManager _navigateManager;
+
+
+
+<RadzenCard class="rz-my-12 rz-mx-auto rz-p-4 rz-p-md-12" style="max-width: 600px;background-image: linear-gradient(180deg, rgba(0, 81, 255, 0.9) 0%, rgba(0, 30, 105, 0.7) 100%);
+box-shadow:0 0 30px 0; backdrop-filter: blur(50px);">
+    @if (errorMessage != null)
+    {
+        <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Default">
+            @errorMessage
+        </RadzenAlert>
+    }
+    <RadzenTemplateForm Data="@loginRequestModel">
+        <RadzenLogin AllowRegister="true" AllowResetPassword="false"
+                     Username="@loginRequestModel.Email"
+                     Password="@loginRequestModel.Password"
+                     AllowRememberMe="false"
+                     Login="@OnLogin" 
+                     Register="@ToRegister"
+                     
+                     />
+                    
+    </RadzenTemplateForm>
+</RadzenCard>
+
+
+@code {
+    private LoginRequestModel loginRequestModel = new LoginRequestModel();
+    private LoginResponseModel loginResponseModel;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await _auth.CheckAuthBeforeRequests(); 
+
+    }
+
+
+
+
+    private async Task OnLogin(LoginArgs args)
+    {
+        try
+        {
+            loginRequestModel.Email = args.Username;
+            loginRequestModel.Password = args.Password;
+
+            loginResponseModel = await _loginService.LoginAsync(loginRequestModel);
+
+            if (loginResponseModel == null || string.IsNullOrEmpty(loginResponseModel.Token?.AccessToken))
+            {
+                errorMessage = "Invalid login attempt. Please check your email and password.";
+
+            }
+            else
+            {
+                errorMessage = null;
+                await _storageMethods.SetLocalStorage("JwtToken", loginResponseModel.Token?.AccessToken);
+
+
+                ((CustomAuthStateProvider)_autprovider).NotifyUserAuthentication();
+
+
+                _navigateManager.NavigateTo("/", true); 
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hata: {ex.Message}";
+            Console.WriteLine($"Hata: {ex.Message}");
+        }
+    }
+    private void OnRegister(LoginArgs args)
+    {
+        // Kayıt işlemi burada yapılabilir.
+        errorMessage = $"Register - Email: {args.Username}";
+    }
+
+    private void ToRegister()
+    {
+        _navigateManager.NavigateTo("register");
+    }
+
+    private void OnResetPassword(LoginArgs args)
+    {
+        // Şifre sıfırlama işlemi burada yapılabilir.
+        errorMessage = $"ResetPassword - Email: {args.Username}";
+    }
+}
+

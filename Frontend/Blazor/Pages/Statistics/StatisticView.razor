@@ -1,0 +1,121 @@
+﻿@page "/statistics"
+@using Business.Managers.Abstract
+@using Entities.Models
+@inject IStatisticService _satatisticService
+@inject IAuthMethods _authMethods;
+
+@attribute [Authorize(Roles = "admin")]
+<RadzenRow Style="gap: 1rem;">
+    <RadzenColumn Size="6">
+        <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px;">
+            <RadzenCard class="rz-background-color-success-light rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 0.7rem calc(-1 * var(--rz-card-padding));">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-on-primary-light"><strong>Top-selling product</strong></RadzenText>
+                <RadzenRow RowGap="0">
+                    <RadzenColumn SizeSM="4">
+                        <RadzenText Style="font-size:medium" TextStyle="TextStyle.Overline" class="rz-color-on-primary-light rz-display-flex rz-mt-4 rz-mb-0">Name: @TopSale?.ProductName</RadzenText>
+                        <RadzenText Style="font-size:medium" TextStyle="TextStyle.Overline" class="rz-color-on-primary-light rz-display-flex rz-mt-4 rz-mb-0">
+                            Pieces: @TopSale?.Quantity
+                        </RadzenText>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenCard>
+        </RadzenCard>
+    </RadzenColumn>
+
+    <RadzenColumn Size="6">
+        <RadzenCard class="rz-my-12 rz-mx-auto" Style="max-width: 420px">
+            <RadzenCard class="rz-background-color-primary-light rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 0.7rem calc(-1 * var(--rz-card-padding));">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-on-primary-light"><strong>Total Gain</strong></RadzenText>
+                <RadzenRow RowGap="0">
+                    <RadzenColumn SizeSM="4">
+                        <RadzenText Style="font-size:medium" TextStyle="TextStyle.Overline" class="rz-color-on-primary-light rz-display-flex rz-mt-4 rz-mb-0">All Times</RadzenText>
+                        <RadzenText Style="font-size:medium" TextStyle="TextStyle.Overline" class="rz-color-on-primary-light rz-display-flex rz-mt-4 rz-mb-0">
+                            @TotalEarn£
+                        </RadzenText>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenCard>
+        </RadzenCard>
+    </RadzenColumn>
+</RadzenRow>
+
+
+<RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-12" AlignItems="AlignItems.Center">
+    <RadzenCard Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></RadzenCheckBox>
+            <RadzenLabel Text="Show Data Labels" Component="dataLabels" />
+        </RadzenStack>
+    </RadzenCard>
+
+    <RadzenStack Style="width: 100%; max-width: 600px;">
+        <RadzenChart>
+            <RadzenDonutSeries Data="@revenue" CategoryProperty="Quarter" ValueProperty="Revenue" TotalAngle="180" StartAngle="180">
+                <ChildContent>
+                    <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                </ChildContent>
+                <TitleTemplate>
+                    <div class="rz-donut-content">
+                        <div>Top Categories</div>
+                        <div>All Time</div>
+                    </div>
+                </TitleTemplate>
+            </RadzenDonutSeries>
+        </RadzenChart>
+    </RadzenStack>
+</RadzenStack>
+
+
+<br />
+
+@code {
+    private StatisticProductModel TopSale { get; set; } = new StatisticProductModel();
+
+    private Decimal TotalEarn { get; set; } = new Decimal();
+
+    private List<GetTopCategoriesModel> topCategories = new List<GetTopCategoriesModel>();
+
+    bool showDataLabels = false;
+    protected override async Task OnInitializedAsync()
+    {
+        await _authMethods.CheckAuthBeforeRequests();
+        var model = await _satatisticService.GetTopSalesProductAsync();
+        TopSale = model;
+
+        var sale = await _satatisticService.GetTotalEarnAsync();
+
+        TotalEarn = sale;
+
+        topCategories = await _satatisticService.GetTopCategoriesAsync();
+        FillRevenue();
+    }
+
+    class DataItem
+    {
+        public string Quarter { get; set; }
+        public int Revenue { get; set; }
+    }
+
+    DataItem[] revenue = new DataItem[] { };
+
+    void FillRevenue()
+    {
+        var revenueList = new List<DataItem>();
+
+        foreach (var item in topCategories)
+        {
+            revenueList.Add(new DataItem
+                {
+                    Quarter = item.CategoryName, 
+                    Revenue = item.TotalSalesQuantity 
+                });
+        }
+        revenue = revenueList.ToArray();
+    }
+   }
+
+
+
+
+
+   

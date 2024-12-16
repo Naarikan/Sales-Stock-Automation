@@ -1,0 +1,78 @@
+﻿@page "/employeeconfirm"
+@using Business.Managers.Abstract
+@using Entities.Models
+@using Microsoft.AspNetCore.Authorization
+@inject IEmployeeService _employeeService;
+@inject NotificationService NotificationService
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,sales,stock")]
+@if (employees == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+     <div style="padding:0 20px;margin-top:100px">
+	<RadzenDataGrid @ref="employeesGrid" Data="employees" TItem="EmployeeModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					Style="font-family:'Cascadia Code'" AllowSorting="true" AllowColumnResize="true">
+		<Columns>
+
+			<RadzenDataGridColumn TItem="EmployeeModel" Property="Id" Title="Id">
+				<Template Context="context">
+					@if (context.IsConfirmed == false){<RadzenIcon Icon="announcement" IconStyle="IconStyle.Warning"></RadzenIcon>}else{<span>@context.Id</span>}
+					</Template>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn  TItem="EmployeeModel" Property="FirstName" Title="First Name" />
+			<RadzenDataGridColumn TItem="EmployeeModel" Property="LastName" Title="Last Name" />
+			<RadzenDataGridColumn TItem="EmployeeModel" Property="Email" Title="Email" />
+			<RadzenDataGridColumn TItem="EmployeeModel" Property="PhoneNumber" Title="Phone" />
+			<RadzenDataGridColumn TItem="EmployeeModel"  Property="IsConfirmed" Title="Confirm Stat" />
+			
+			<RadzenDataGridColumn TItem="EmployeeModel">
+				
+				<Template Context="context">
+					@if (context.IsConfirmed == false){<RadzenButton Icon="done" ButtonStyle="ButtonStyle.Success" Click="()=>Confirmation(context.Id)"></RadzenButton>}
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="()=>Reject(context)" ></RadzenButton>
+				</Template>
+
+
+			</RadzenDataGridColumn>
+			
+		</Columns>
+	</RadzenDataGrid>
+	</div>
+}
+
+@code {
+	private List<EmployeeModel>? employees;
+	RadzenDataGrid<EmployeeModel>? employeesGrid;
+	// private EmployeeModel newEmployee = new EmployeeModel(); 
+	private async Task LoadEmployees()
+	{
+		await _authMethods.CheckAuthBeforeRequests();
+		employees = await _employeeService.GetEmployeesAsync();
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadEmployees();
+	}
+
+	private async Task Confirmation(int id)
+	{
+
+
+		await _employeeService.ConfirmEmployeeAsync(id);
+		StateHasChanged();
+
+	}
+	private async Task Reject(EmployeeModel model)
+	{
+		if (model.IsConfirmed == false) { await _employeeService.DestroyEmployeeAsync(model.Id); }
+		else{ await _employeeService.DeleteEmployeeAsync(model.Id);}
+		StateHasChanged();
+	}
+
+}

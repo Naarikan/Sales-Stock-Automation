@@ -1,0 +1,17 @@
+﻿@page "/stocks"
+
+@attribute [Authorize(Roles = "admin,stock")]
+<RadzenTabs RenderMode="TabRenderMode.Client" Style="font-family:'Cascadia Code'"  @bind-SelectedIndex=@selectedIndex>
+    <Tabs>
+        <RadzenTabsItem Icon="inventory_2" Text="Stocs" >
+         <StockView/>
+        </RadzenTabsItem>
+        <RadzenTabsItem Icon="trending_up" Text="Stoc Movements">
+            <StockMovementsView />
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
+@code {
+    int selectedIndex = 0;
+}

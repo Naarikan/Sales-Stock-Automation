@@ -1,0 +1,119 @@
+﻿@page "/baselocality"
+@using Business.Managers.Abstract
+@using Entities.Models
+@inject IAuthMethods _authMethods;
+@inject ILocalityService _ils;
+
+@if (localities == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+	<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Locality" Click="()=>InsertRow()" />
+	<br />
+	<br />
+	<RadzenDataGrid @ref="localitiesGrid" Data="localities" TItem="LocalityModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single"  >
+         
+				<Template>
+					<SubLocalityView ButtonName="İlçe Ekle" ParentId="context.Id" ></SubLocalityView>
+				</Template>
+
+		<Columns>
+			<RadzenDataGridColumn TItem="LocalityModel" Property="Id" Title="Id" />
+			<RadzenDataGridColumn TItem="LocalityModel" Property="Name" Title="Name">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.Name" Style="width:100%" Placeholder="Please enter the Locality"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Locality Name"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="LocalityModel" Property="ParentId" Title="Parent">
+				<EditTemplate Context="context">
+					<RadzenNumeric Name="parent" @bind-Value="context.ParentId" Style="width:100%" Placeholder="Enter Parent ID"></RadzenNumeric>
+					<RadzenNumericRangeValidator Min="1" Max="10000" Popup="true" Component="parent" Text="Please enter a valid Parent ID"></RadzenNumericRangeValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+
+			<RadzenDataGridColumn TItem="LocalityModel">
+				<Template Context="context">
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="()=>EditRow(context)"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="()=>DeleteRow(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+		</Columns>
+	</RadzenDataGrid>
+}
+
+@code {
+	private List<LocalityModel> parentList = new List<LocalityModel>();
+	private List<LocalityModel>? localities;
+	RadzenDataGrid<LocalityModel>? localitiesGrid;
+	List<LocalityModel> localitiesToInsert = new List<LocalityModel>();
+	private LocalityModel newLocality = new LocalityModel(); // Added
+
+
+	async Task RefreshList()
+	{
+		await _authMethods.CheckAuthBeforeRequests();
+		localities = await _ils.GetLocalitiesAsync();
+		localities = localities.Where(x => x.ParentId == x.Id).ToList();
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		await RefreshList();
+	}
+
+	async Task InsertRow()
+	{
+		newLocality = new LocalityModel(); // Reset newLocality
+		localitiesToInsert.Add(newLocality);
+		await localitiesGrid.InsertRow(newLocality); // Using newLocality
+	}
+
+	async Task OnCreateRow(LocalityModel Locality)
+	{
+		await _ils.AddLocalityAsync(Locality);
+		await Task.Delay(TimeSpan.FromSeconds(0.1));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void CancelEdit(LocalityModel LocalityModel)
+	{
+		localitiesGrid.CancelEditRow(LocalityModel);
+
+	}
+
+	void SaveRow(LocalityModel LocalityModel)
+	{
+		localitiesGrid?.UpdateRow(LocalityModel);
+
+	}
+	async Task OnUpdateRow(LocalityModel LocalityModel)
+	{
+
+		await _ils.UpdateLocalityAsync(LocalityModel);
+		await Task.Delay(TimeSpan.FromSeconds(0.2));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	async void DeleteRow(LocalityModel model)
+	{
+		await _ils.DeleteLocalityAsync(model.Id);
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void EditRow(LocalityModel model) { localitiesGrid.EditRow(model); }
+
+}

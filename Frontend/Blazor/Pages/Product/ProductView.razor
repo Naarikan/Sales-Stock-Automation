@@ -1,0 +1,136 @@
+﻿@page "/product"
+@using Business.Managers.Abstract
+@using Entities.Models
+@inject IProductService _productService;
+@inject ICategoryService _categoryService;
+@inject NotificationService NotificationService
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,sales,stock")]
+@if (products == null)
+{
+	<RadzenStack Gap="1rem" Class="rz-m-12">
+		<RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+	</RadzenStack>
+}
+else
+{
+	<div style="margin-top:20px;padding:0 20px">
+		<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Product" Click="()=>InsertRow()" />
+	</div>
+	<div style="padding:0 20px;margin-top:40px">
+	<RadzenDataGrid @ref="productsGrid" Data="products" TItem="ProductModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+					AllowSorting="true" AllowColumnResize="true" RowCreate="OnCreateRow" RowUpdate="OnUpdateRow" EditMode="DataGridEditMode.Single" Style="font-family:'Cascadia Code'">
+		<Columns>
+			<RadzenDataGridColumn TItem="ProductModel" Property="Id" Title="Id" />
+			<RadzenDataGridColumn TItem="ProductModel" Property="Name" Title="Name">
+				<EditTemplate Context="context">
+					<RadzenTextBox Name="name" @bind-Value="context.Name" Style="width:100%" Placeholder="Please enter the Product"></RadzenTextBox>
+					<RadzenRequiredValidator Popup="true" Component="name" Text="Please Enter The Product Name"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+			<RadzenDataGridColumn TItem="ProductModel" Property="CategoryName" Title="Kategori">
+				<EditTemplate Context="context">
+
+					<RadzenDropDown Style="width: 100%; max-width: 300px;" TValue="int" @bind-Value="context.CategoryId" AllowFiltering="true" Placeholder="Kategori Seçin"
+									Data="categories" TextProperty="Name" ValueProperty="Id" />
+				</EditTemplate>
+			</RadzenDataGridColumn>
+			<RadzenDataGridColumn TItem="ProductModel" Property="Price" Title="Price">
+				<EditTemplate Context="context">
+					<RadzenNumeric Name="price" @bind-Value="context.Price" Style="width:100%" Placeholder="Please enter the Price"></RadzenNumeric>
+					<RadzenRequiredValidator Popup="true" Component="price" Text="Please Enter The Price"></RadzenRequiredValidator>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+
+			<RadzenDataGridColumn TItem="ProductModel">
+				<Template Context="context">
+					<RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="()=>EditRow(context)"></RadzenButton>
+					<RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="()=>DeleteRow(context)"></RadzenButton>
+				</Template>
+				<EditTemplate Context="context">
+					<RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Click="()=>SaveRow(context)"></RadzenButton>
+					<RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Danger" Click="()=>CancelEdit(context)"></RadzenButton>
+				</EditTemplate>
+			</RadzenDataGridColumn>
+		</Columns>
+	</RadzenDataGrid>
+	</div>
+}
+
+@code {
+	private List<ProductModel>? products;
+	RadzenDataGrid<ProductModel>? productsGrid;
+	List<ProductModel> productsToInsert = new List<ProductModel>();
+	private ProductModel newProduct = new ProductModel();
+	IList<CategoryModel> categories;
+
+	public int CategoryId { get; set; }
+
+
+	private async Task RefreshList()
+	{
+		products = await _productService.GetProductsAsync();
+		categories = await _categoryService.GetCategoriesAsync();
+		foreach (var item in products)
+		{
+			var category = await _categoryService.GetCategoryByIdAsync(item.CategoryId);
+			item.CategoryName = category.Name;
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		await _authMethods.CheckAuthBeforeRequests();
+		await RefreshList();
+
+	}
+
+	async Task InsertRow()
+	{
+		newProduct = new ProductModel(); // Reset newProduct
+		productsToInsert.Add(newProduct);
+		await productsGrid.InsertRow(newProduct); // Using newProduct
+	}
+
+	async Task OnCreateRow(ProductModel Product)
+	{
+
+		await _productService.AddProductAsync(Product);
+		await Task.Delay(TimeSpan.FromSeconds(0.1));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void CancelEdit(ProductModel ProductModel)
+	{
+		productsGrid.CancelEditRow(ProductModel);
+
+	}
+
+	void SaveRow(ProductModel ProductModel)
+	{
+		productsGrid?.UpdateRow(ProductModel);
+
+	}
+	async Task OnUpdateRow(ProductModel ProductModel)
+	{
+		var pr = ProductModel;
+
+		await _productService.UpdateProductAsync(ProductModel);
+		await Task.Delay(TimeSpan.FromSeconds(0.2));
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	async void DeleteRow(ProductModel model)
+	{
+		await _productService.DeleteProductAsync(model.Id);
+		await RefreshList();
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void EditRow(ProductModel model) { productsGrid.EditRow(model); }
+
+}
+

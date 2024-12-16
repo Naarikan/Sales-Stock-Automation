@@ -1,0 +1,108 @@
+﻿@page "/register"
+@using Business.Managers.Abstract
+@inject IRegisterService _registerService;
+@inject NavigationManager _navigation;
+
+@layout LoginLayout
+<head>
+    <style>
+        .centered-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh; /* Yüksekliği biraz azaltarak yukarıya çekiyoruz */
+            padding: 20px;
+            margin-top: 30px; /* Yukarı çekmek için margin-top'u küçültüyoruz */
+        }
+
+        .blurred-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            margin-top: -50px;
+        }
+
+        .input-field {
+            width: 100%;
+            height: 50px;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<div class="centered-container">
+    <div class="blurred-card">
+        <h2 style="font-family:'Cascadia Code';color:antiquewhite"> Register Form</h2><br />
+        <RadzenTemplateForm Data="rm"  >
+            @if (message == "Registration successful")
+            {
+                <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter">
+                    Alert without close button
+                </RadzenAlert>
+            }
+            else if (message == "Regsiteration Failed!")
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Lighter">
+                    Alert without message icon
+                </RadzenAlert>
+            }
+            <RadzenRequiredValidator Component="firstname" Text="First Name is Required"></RadzenRequiredValidator>
+            <RadzenTextBox Name="firstname" @bind-Value="rm.FirstName" Placeholder="Firstname" class="input-field"></RadzenTextBox>
+
+            <RadzenRequiredValidator Component="lastname" Text="Last Name is Required"></RadzenRequiredValidator>
+            <RadzenTextBox Name="lastname" @bind-Value="rm.LastName" Placeholder="LastName" class="input-field"></RadzenTextBox>
+         
+           
+            <RadzenRequiredValidator Component="adress" Text="Address is Required"></RadzenRequiredValidator>
+            <RadzenTextBox Name="adress" @bind-Value="rm.Address" Placeholder="Address" class="input-field"></RadzenTextBox>
+
+
+
+            <RadzenRequiredValidator Component="phone" Text="Phone is Required"></RadzenRequiredValidator>
+            <RadzenTextBox Name="phone" @bind-Value="rm.PhoneNumber" Placeholder="Phone" class="input-field"></RadzenTextBox>
+
+            <RadzenEmailValidator Component="mail"></RadzenEmailValidator>
+            <RadzenTextBox Name="mail" @bind-Value="rm.Email" Placeholder="Email" class="input-field"></RadzenTextBox>
+          
+            <RadzenRequiredValidator Component="pass" Text="Password is Required"></RadzenRequiredValidator>
+            <RadzenPassword Name="pass" @bind-Value="rm.Password" Placeholder="Password" class="input-field"></RadzenPassword>
+
+            
+            <RadzenCompareValidator Component="confirm" Value="rm.Password" Text="Passwords do not Match"></RadzenCompareValidator>
+            <RadzenRequiredValidator Component="confirm" Text="Confirm Password is Required"></RadzenRequiredValidator>
+            <RadzenPassword Name="confirm" @bind-Value="rm.ConfirmPassword" Placeholder="Confirm Password" class="input-field"></RadzenPassword>
+            
+            @if(rm.ConfirmPassword==rm.Password){
+            <RadzenButton Text="Register"  ButtonStyle="ButtonStyle.Primary" Type="Submit" Click="()=>OnSubmit()" />
+            }
+            else
+            {
+                <RadzenButton Text="Register" ButtonStyle="ButtonStyle.Primary" Type="Submit" Disabled="true" Click="()=>OnSubmit()" />
+            }
+        </RadzenTemplateForm>
+    </div>
+</div>
+
+@code {
+    private RegisterModel rm = new RegisterModel();
+    private string message { get; set; } = null;
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            await _registerService.Register(rm);   
+            _navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            message = "Regsiteration Failed!";
+        }
+    }
+}

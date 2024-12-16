@@ -1,0 +1,54 @@
+﻿@using Business.Managers.Abstract
+@using Entities.Models
+@inject IStockMovementService _StockMovementService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IAuthMethods _authMethods;
+@attribute [Authorize(Roles = "admin,stock")]
+
+@if (StockMovements == null)
+{
+    <RadzenStack Gap="1rem" Class="rz-m-12">
+        <RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Info" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </RadzenStack>
+}
+else
+{
+    <br />
+    <br />
+    <RadzenDataGrid @ref="StockMovementsGrid" Data="StockMovements" TItem="StockMovementModel" AllowFiltering="true" AllowPaging="true" PageSize="10"
+                    AllowSorting="true" AllowColumnResize="true">
+        <Columns>
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="Id" Title="Id" />
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="ProductName" Title="Product" />
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="Stock" Title="Stock" />
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="Movement" Title="Movement">
+                <Template>
+                    @{
+                        var movement = context.Movement;
+                        var color = movement < 0 ? "red" : "green";
+                        var iconType = movement < 0 ? "arrow_cool_down" : "arrow_warm_up";
+                        <RadzenIcon Icon=""></RadzenIcon>
+                    }
+                    <span style="color:@color">@context.Movement</span>
+                    <RadzenIcon Icon=@iconType IconColor=@color></RadzenIcon>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="CreatedDate" Title="Created Date" />
+            <RadzenDataGridColumn TItem="StockMovementModel" Property="ModifiedDate" Title="Last Modified" />
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    private List<StockMovementModel>? StockMovements;
+    RadzenDataGrid<StockMovementModel>? StockMovementsGrid;
+    List<StockMovementModel> StockMovementsToInsert = new List<StockMovementModel>();
+    private StockMovementModel newStockMovement = new StockMovementModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await _authMethods.CheckAuthBeforeRequests();
+        StockMovements = await _StockMovementService.GetMovementsAsync();
+    }
+}
